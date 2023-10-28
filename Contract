@@ -1,0 +1,37 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract Dice {
+    address public owner;
+    uint256 public minimumBet = 0.01 ether;
+
+    event BetPlaced(address indexed player, uint betValue, uint amount, uint result, bool winner);
+
+    constructor() {
+        owner = msg.sender;
+    }
+
+    function setMinimumBet(uint _minBet) public {
+        require(msg.sender == owner, "Only the owner can set the minimum bet");
+        minimumBet = _minBet;
+    }
+
+    function rollDice(uint8 betValue) public payable {
+        require(msg.value >= minimumBet, "Minimum bet not met");
+        require(betValue >= 1 && betValue <= 6, "Bet value must be between 1 and 6");
+
+        uint winningNumber = uint(blockhash(block.number - 1)) % 6 + 1;
+        bool winner = (winningNumber == betValue);
+
+        if (winner) {
+            payable(msg.sender).transfer(msg.value * 2); // Pay double the bet amount to the winner
+        }
+
+        emit BetPlaced(msg.sender, betValue, msg.value, winningNumber, winner);
+    }
+
+    function withdrawFunds() public {
+        require(msg.sender == owner, "Only the owner can withdraw funds");
+        payable(owner).transfer(address(this).balance);
+    }
+}
